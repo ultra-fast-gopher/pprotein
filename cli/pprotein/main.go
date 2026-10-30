@@ -53,7 +53,8 @@ func start() error {
 		Store:    store,
 		EventHub: hub,
 	}
-	if err := pprof.NewHandler(pprofOpts).Register(api.Group("/pprof")); err != nil {
+	pprofHandler := pprof.NewHandler(pprofOpts)
+	if err := pprofHandler.Register(api.Group("/pprof")); err != nil {
 		return err
 	}
 
@@ -95,11 +96,16 @@ func start() error {
 		return err
 	}
 
-	grp, err := group.NewCollector(store, port)
+	grp, err := group.NewCollector(store, port, map[string]group.SnapshotSink{
+		"pprof":   pprofHandler,
+		"httplog": alpHandler,
+		"slowlog": slpHandler,
+	})
 	if err != nil {
 		return err
 	}
 	grp.RegisterHandlers(api.Group("/group"))
+	grp.RegisterRunHandlers(api.Group("/runs"))
 
 	return e.Start(":" + port)
 }

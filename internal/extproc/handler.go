@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/kaz/pprotein/internal/collect"
+	"github.com/kaz/pprotein/internal/git"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 )
@@ -39,6 +40,10 @@ func (h *handler) Register(g *echo.Group) error {
 	g.GET("/data/latest", h.getLatestData)
 
 	return nil
+}
+
+func (h *handler) AddSnapshot(target *collect.SnapshotTarget, content []byte, repository *git.RepositoryInfo) (*collect.Snapshot, error) {
+	return h.collector.AddWithRepository(target, content, repository)
 }
 
 func (h *handler) getIndex(c echo.Context) error {

@@ -23,13 +23,15 @@ type (
 		store     storage.Storage
 		validator *validator.Validate
 		targets   *persistent.Handler
+		runs      *runManager
 	}
 
 	CollectTarget struct {
-		Type     string `validate:"required"`
-		Label    string `validate:"required"`
-		URL      string `validate:"required,url"`
-		Duration int    `validate:"required,gt=0"`
+		Type       string `validate:"required"`
+		Label      string `validate:"required"`
+		URL        string `validate:"required,url"`
+		Duration   int    `validate:"required,gt=0"`
+		ControlURL string `validate:"omitempty,url"`
 	}
 
 	GroupMeta struct {
@@ -43,7 +45,7 @@ type (
 //go:embed targets.json
 var defaultTargets []byte
 
-func NewCollector(store storage.Storage, port string) (*Collector, error) {
+func NewCollector(store storage.Storage, port string, sinks map[string]SnapshotSink) (*Collector, error) {
 	c := &Collector{
 		port:      port,
 		store:     store,
@@ -55,6 +57,11 @@ func NewCollector(store storage.Storage, port string) (*Collector, error) {
 		return nil, fmt.Errorf("failed to create targets: %w", err)
 	}
 	c.targets = targets
+	runs, err := newRunManager(store, sinks)
+	if err != nil {
+		return nil, err
+	}
+	c.runs = runs
 
 	return c, nil
 }
@@ -65,6 +72,10 @@ func (cl *Collector) RegisterHandlers(g *echo.Group) {
 	g.GET("/collect", cl.collectAll)
 }
 
+func (cl *Collector) RegisterRunHandlers(g *echo.Group) {
+	cl.runs.RegisterHandlers(g, cl)
+}
+
 func (cl *Collector) sanitize(raw []byte) ([]byte, error) {
 	targets := []*CollectTarget{}
 	if err := json.Unmarshal(raw, &targets); err != nil {
@@ -73,6 +84,13 @@ func (cl *Collector) sanitize(raw []byte) ([]byte, error) {
 
 	if err := cl.validator.Var(targets, "dive"); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
+	}
+	for _, target := range targets {
+		if target.ControlURL != "" {
+			if err := cl.validator.Var(target.ControlURL, "url"); err != nil {
+				return nil, fmt.Errorf("invalid control URL: %w", err)
+			}
+		}
 	}
 
 	res, err := json.MarshalIndent(targets, "", "  ")

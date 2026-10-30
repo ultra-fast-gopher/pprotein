@@ -9,6 +9,7 @@ import (
 	"github.com/felixge/fgprof"
 	"github.com/goccy/go-json"
 	"github.com/gorilla/mux"
+	"github.com/kaz/pprotein/internal/capture"
 	"github.com/kaz/pprotein/internal/git"
 	"github.com/kaz/pprotein/internal/tail"
 )
@@ -27,6 +28,9 @@ func NewDebugHandler() http.Handler {
 
 func RegisterDebugHandlers(r *mux.Router) {
 	r.Use(gitRepositoryMiddleware)
+	captureHandler := capture.NewHandler(httplogPath, slowlogPath)
+	r.HandleFunc("/debug/capture/start", captureHandler.Start).Methods(http.MethodPost)
+	r.HandleFunc("/debug/capture/stop", captureHandler.Stop).Methods(http.MethodPost)
 
 	r.Handle("/debug/log/httplog", tail.NewTailHandler(httplogPath))
 	r.Handle("/debug/log/slowlog", tail.NewTailHandler(slowlogPath))

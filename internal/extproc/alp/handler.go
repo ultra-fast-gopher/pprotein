@@ -6,6 +6,7 @@ import (
 
 	"github.com/kaz/pprotein/internal/collect"
 	"github.com/kaz/pprotein/internal/extproc"
+	"github.com/kaz/pprotein/internal/git"
 	"github.com/kaz/pprotein/internal/persistent"
 	"github.com/kaz/pprotein/internal/storage"
 	"github.com/labstack/echo/v4"
@@ -13,9 +14,14 @@ import (
 )
 
 type (
+	snapshotAdder interface {
+		AddSnapshot(*collect.SnapshotTarget, []byte, *git.RepositoryInfo) (*collect.Snapshot, error)
+	}
+
 	handler struct {
 		opts   *collect.Options
 		config *persistent.Handler
+		adder  snapshotAdder
 	}
 )
 
@@ -39,10 +45,16 @@ func NewHandler(opts *collect.Options, store storage.Storage) (*handler, error) 
 func (h *handler) Register(g *echo.Group) error {
 	h.config.RegisterHandlers(g.Group("/config"))
 
-	if err := extproc.NewHandler(&processor{confPath: h.config.GetPath()}, h.opts).Register(g); err != nil {
+	api := extproc.NewHandler(&processor{confPath: h.config.GetPath()}, h.opts)
+	if err := api.Register(g); err != nil {
 		return fmt.Errorf("failed to register extproc handlers: %w", err)
 	}
+	h.adder = api
 	return nil
+}
+
+func (h *handler) AddSnapshot(target *collect.SnapshotTarget, content []byte, repository *git.RepositoryInfo) (*collect.Snapshot, error) {
+	return h.adder.AddSnapshot(target, content, repository)
 }
 
 func (h *handler) sanitize(raw []byte) ([]byte, error) {

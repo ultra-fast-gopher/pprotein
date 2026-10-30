@@ -8,6 +8,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/kaz/pprotein/internal/event"
+	"github.com/kaz/pprotein/internal/git"
 	"github.com/kaz/pprotein/internal/storage"
 )
 
@@ -159,7 +160,12 @@ func (c *Collector) Collect(target *SnapshotTarget) error {
 }
 
 func (c *Collector) Add(target *SnapshotTarget, content []byte) (*Snapshot, error) {
+	return c.AddWithRepository(target, content, nil)
+}
+
+func (c *Collector) AddWithRepository(target *SnapshotTarget, content []byte, repository *git.RepositoryInfo) (*Snapshot, error) {
 	snapshot := newSnapshot(c.store, c.typ, c.ext, target)
+	snapshot.Repository = repository
 	c.updateStatus(snapshot, StatusPending, "Collecting")
 
 	if err := snapshot.Add(content); err != nil {
