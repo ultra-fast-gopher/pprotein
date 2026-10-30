@@ -28,9 +28,10 @@ jobs:
           {
             echo "tags<<EOF"
             echo "ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_SHA}"
-            echo "ghcr.io/${GITHUB_REPOSITORY}:latest"
             if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
               echo "ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME}"
+            else
+              echo "ghcr.io/${GITHUB_REPOSITORY}:latest"
             fi
             echo "EOF"
           } >> "${GITHUB_OUTPUT}"
