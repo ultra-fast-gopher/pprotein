@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - master
+    tags:
+      - "v*"
 
 jobs:
   push:
@@ -19,9 +21,20 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare image tags
+        id: image_tags
+        shell: bash
+        run: |
+          {
+            echo "tags<<EOF"
+            echo "ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_SHA}"
+            echo "ghcr.io/${GITHUB_REPOSITORY}:latest"
+            if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+              echo "ghcr.io/${GITHUB_REPOSITORY}:${GITHUB_REF_NAME}"
+            fi
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
       - uses: docker/build-push-action@v6
         with:
           push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
-            ghcr.io/${{ github.repository }}:latest
+          tags: ${{ steps.image_tags.outputs.tags }}
