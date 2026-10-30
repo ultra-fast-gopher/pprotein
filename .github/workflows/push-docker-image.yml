@@ -3,6 +3,7 @@ name: Push docker image
 on:
   push:
     branches:
+      - main
       - master
 
 jobs:
