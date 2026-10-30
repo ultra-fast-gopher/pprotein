@@ -1,6 +1,6 @@
 module github.com/kaz/pprotein
 
-go 1.23.3
+go 1.25.0
 
 require (
 	github.com/alexandrevicenzi/go-sse v1.6.0
@@ -14,9 +14,10 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/echo/v4 v4.12.0
+	github.com/labstack/echo/v5 v5.4.4
 	github.com/labstack/gommon v0.4.2
 	go.etcd.io/bbolt v1.3.11
-	golang.org/x/sync v0.8.0
+	golang.org/x/sync v0.22.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -61,13 +62,13 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/crypto v0.23.0 // indirect
-	golang.org/x/mod v0.12.0 // indirect
-	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.15.0 // indirect
-	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.13.0 // indirect
+	golang.org/x/crypto v0.54.0 // indirect
+	golang.org/x/mod v0.37.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/time v0.15.0 // indirect
+	golang.org/x/tools v0.47.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )

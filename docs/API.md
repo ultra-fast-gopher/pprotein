@@ -290,6 +290,27 @@ The log handlers default `seconds` to 30 when it is absent or not an integer. Th
 
 `pprotein-agent` is useful when logs reside on another machine: run it on that machine, make its port reachable from the pprotein server, and use its `/debug/log/...` URL as a target. For pprof, the target application must expose `/debug/pprof/...` or `/debug/fgprof` itself; the agent does not proxy another process's pprof endpoint.
 
+## Embedding debug endpoints in Go applications
+
+Import the integration package matching the application's HTTP framework. Echo v3, v4, and v5 adapters live in `integration/echo`, `integration/echov4`, and `integration/echov5`. The Echo v5 adapter requires Go 1.25 or newer.
+
+```go
+package main
+
+import (
+	"github.com/kaz/pprotein/integration/echov5"
+	"github.com/labstack/echo/v5"
+)
+
+func main() {
+	e := echo.New()
+	echov5.Integrate(e)
+	if err := e.Start(":8080"); err != nil {
+		panic(err)
+	}
+}
+```
+
 ## Errors and operational notes
 
 - The HTTP API has no authentication by default. Set `PPROTEIN_CONTROL_TOKEN` to protect target-side session controls; the main API still needs network restrictions or reverse-proxy authentication. The main server and agent listen on all interfaces by default (`:PORT`).
