@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/kaz/pprotein/internal/collect"
-	"github.com/kaz/pprotein/internal/git"
+	"github.com/ultra-fast-gopher/pprotein/internal/collect"
+	"github.com/ultra-fast-gopher/pprotein/internal/git"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 )

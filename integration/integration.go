@@ -9,9 +9,9 @@ import (
 	"github.com/felixge/fgprof"
 	"github.com/goccy/go-json"
 	"github.com/gorilla/mux"
-	"github.com/kaz/pprotein/internal/capture"
-	"github.com/kaz/pprotein/internal/git"
-	"github.com/kaz/pprotein/internal/tail"
+	"github.com/ultra-fast-gopher/pprotein/internal/capture"
+	"github.com/ultra-fast-gopher/pprotein/internal/git"
+	"github.com/ultra-fast-gopher/pprotein/internal/tail"
 )
 
 var (

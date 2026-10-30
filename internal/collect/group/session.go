@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
-	"github.com/kaz/pprotein/internal/collect"
-	"github.com/kaz/pprotein/internal/git"
-	"github.com/kaz/pprotein/internal/storage"
+	"github.com/ultra-fast-gopher/pprotein/internal/collect"
+	"github.com/ultra-fast-gopher/pprotein/internal/git"
+	"github.com/ultra-fast-gopher/pprotein/internal/storage"
 	"github.com/labstack/echo/v4"
 )
 

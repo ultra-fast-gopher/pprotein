@@ -1,4 +1,4 @@
-module github.com/kaz/pprotein
+module github.com/ultra-fast-gopher/pprotein
 
 go 1.25.0
 

@@ -1,7 +1,7 @@
 package echo
 
 import (
-	"github.com/kaz/pprotein/integration"
+	"github.com/ultra-fast-gopher/pprotein/integration"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/labstack/gommon/log"

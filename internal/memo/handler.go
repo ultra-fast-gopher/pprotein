@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/goccy/go-json"
-	"github.com/kaz/pprotein/internal/collect"
+	"github.com/ultra-fast-gopher/pprotein/internal/collect"
 	"github.com/labstack/echo/v4"
 )
 

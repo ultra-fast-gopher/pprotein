@@ -298,7 +298,7 @@ Import the integration package matching the application's HTTP framework. Echo v
 package main
 
 import (
-	"github.com/kaz/pprotein/integration/echov5"
+	"github.com/ultra-fast-gopher/pprotein/integration/echov5"
 	"github.com/labstack/echo/v5"
 )
 

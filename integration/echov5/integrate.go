@@ -2,7 +2,7 @@
 package echov5
 
 import (
-	"github.com/kaz/pprotein/integration"
+	"github.com/ultra-fast-gopher/pprotein/integration"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 )
