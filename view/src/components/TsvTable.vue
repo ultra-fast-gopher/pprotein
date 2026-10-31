@@ -56,7 +56,10 @@ export default defineComponent({
   },
   computed: {
     rows() {
-      return parse<string[]>(this.tsv, { skipEmptyLines: true }).data;
+      return parse<string[]>(this.tsv, {
+        delimiter: "\t",
+        skipEmptyLines: true,
+      }).data;
     },
     header() {
       return this.rows[0] || [];
