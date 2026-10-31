@@ -1,5 +1,10 @@
 <template>
-  <TsvTable :tsv="tsv" :link="`/api/slowlog/data/${$route.params.id}`"/>
+  <TsvTable
+    :key="requestUrl"
+    :tsv="tsv"
+    :link="`/api/${apiEndpoint}/data/${$route.params.id}`"
+    :initial-sort-column="apiEndpoint === 'pgslowlog' ? 4 : 0"
+  />
 </template>
 
 <script lang="ts">
@@ -15,16 +20,27 @@ export default defineComponent({
       tsv: "",
     };
   },
-  async created() {
-    await this.updateTsv(this.$route.params.id);
+  computed: {
+    apiEndpoint(): string {
+      return this.$route.meta.logEndpoint === "pgslowlog"
+        ? "pgslowlog"
+        : "slowlog";
+    },
+    requestUrl(): string {
+      return `/api/${this.apiEndpoint}/${this.$route.params.id}`;
+    },
   },
-  async beforeRouteUpdate(route) {
-    await this.updateTsv(route.params.id);
-  },
-  methods: {
-    async updateTsv(id: string | string[]) {
-      const resp = await fetch(`/api/slowlog/${id}`);
-      this.tsv = await resp.text();
+  watch: {
+    requestUrl: {
+      immediate: true,
+      async handler(url: string) {
+        this.tsv = "";
+        const resp = await fetch(url);
+        const tsv = await resp.text();
+        if (url === this.requestUrl) {
+          this.tsv = tsv;
+        }
+      },
     },
   },
 });

@@ -41,12 +41,16 @@ export default defineComponent({
       required: true,
     },
     link: {
-      type: String
-    }
+      type: String,
+    },
+    initialSortColumn: {
+      type: Number,
+      default: 0,
+    },
   },
   data() {
     return {
-      sortColumn: 0,
+      sortColumn: this.initialSortColumn,
       sortOrder: "desc",
     };
   },

@@ -53,6 +53,15 @@ export default createRouter({
           component: SlowLogEntry,
           meta: {
             title: "slowlog:{{id}} | group:{{gid}}",
+            logEndpoint: "slowlog",
+          },
+        },
+        {
+          path: "pgslowlog/:id/",
+          component: SlowLogEntry,
+          meta: {
+            title: "pgslowlog:{{id}} | group:{{gid}}",
+            logEndpoint: "pgslowlog",
           },
         },
         {
@@ -113,7 +122,19 @@ export default createRouter({
       component: SlowLogEntry,
       meta: {
         title: "slowlog:{{id}}",
+        logEndpoint: "slowlog",
       },
+    },
+    {
+      path: "/pgslowlog/",
+      component: EntryList,
+      meta: { title: "pgslowlog" },
+      props: { endpoint: "pgslowlog" },
+    },
+    {
+      path: "/pgslowlog/:id/",
+      component: SlowLogEntry,
+      meta: { title: "pgslowlog:{{id}}", logEndpoint: "pgslowlog" },
     },
     {
       path: "/setting/",

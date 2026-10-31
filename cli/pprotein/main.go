@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/labstack/echo/v4"
 	"github.com/ultra-fast-gopher/pprotein/integration/echov4"
 	"github.com/ultra-fast-gopher/pprotein/internal/collect"
 	"github.com/ultra-fast-gopher/pprotein/internal/collect/group"
@@ -14,7 +15,6 @@ import (
 	"github.com/ultra-fast-gopher/pprotein/internal/pprof"
 	"github.com/ultra-fast-gopher/pprotein/internal/storage"
 	"github.com/ultra-fast-gopher/pprotein/view"
-	"github.com/labstack/echo/v4"
 )
 
 func start() error {
@@ -86,6 +86,20 @@ func start() error {
 		return err
 	}
 
+	pgslpOpts := &collect.Options{
+		Type:     "pgslowlog",
+		Ext:      "-pgslowlog.log",
+		Store:    store,
+		EventHub: hub,
+	}
+	pgslpHandler, err := slp.NewPostgreSQLHandler(pgslpOpts, store)
+	if err != nil {
+		return err
+	}
+	if err := pgslpHandler.Register(api.Group("/pgslowlog")); err != nil {
+		return err
+	}
+
 	memoOpts := &collect.Options{
 		Type:     "memo",
 		Ext:      "-memo.log",
@@ -97,9 +111,10 @@ func start() error {
 	}
 
 	grp, err := group.NewCollector(store, port, map[string]group.SnapshotSink{
-		"pprof":   pprofHandler,
-		"httplog": alpHandler,
-		"slowlog": slpHandler,
+		"pprof":     pprofHandler,
+		"httplog":   alpHandler,
+		"slowlog":   slpHandler,
+		"pgslowlog": pgslpHandler,
 	})
 	if err != nil {
 		return err
