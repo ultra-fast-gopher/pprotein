@@ -79,7 +79,7 @@ including spaces. The default is:
 ```yaml
 bundle_values: true
 bundle_where_in: true
-filters: Query matches "(?i)^\\s*(SELECT|INSERT|UPDATE|DELETE|WITH)\\b"
+filters: Query matches "(?i)^\\s*(SELECT|INSERT|UPDATE|DELETE|WITH|LOCK|BEGIN|COMMIT|ROLLBACK)\\b"
 log_line_prefix: '%m [%p] '
 sort: sum-query-time
 reverse: true
@@ -122,7 +122,9 @@ The PostgreSQL endpoints mirror the MySQL endpoints:
 PostgreSQL writes simple-protocol queries as `statement:` and extended-protocol
 execution as `execute <name>:`. The processor normalizes the latter for SLP
 without modifying the stored raw log. Parse and bind duration lines are not
-counted as additional query executions. Multiline SQL is preserved, and normal
+counted as additional query executions. Multiline SQL, including statements
+that start on the following log line, is preserved. `LOCK` and transaction
+statements are included so lock waits and slow commits remain visible. Normal
 SLP query abstraction groups equivalent statements.
 
 The report measures the duration of completed executions present in the capture.
