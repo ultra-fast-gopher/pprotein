@@ -8,45 +8,52 @@ import (
 )
 
 var executeRecord = regexp.MustCompile(`^(.*?\bLOG:[ \t]+duration:[ \t]+[0-9]+(?:\.[0-9]+)?[ \t]+ms[ \t]+)execute[ \t]+.*?:[ \t]+`)
-var emptyStatementRecord = regexp.MustCompile(`\bLOG:[ \t]+duration:[ \t]+[0-9]+(?:\.[0-9]+)?[ \t]+ms[ \t]+statement:[ \t\r\n]*$`)
 
 func normalizePostgreSQLLog(source io.Reader, dest io.Writer) error {
 	reader := bufio.NewReader(source)
-	pendingHeader := ""
+	// record holds the current log record without its line terminator so that
+	// continuation lines can be folded into it.
+	record, recordEnd := "", ""
+	inRecord := false
+	flush := func() error {
+		if !inRecord {
+			return nil
+		}
+		inRecord = false
+		_, err := io.WriteString(dest, record+recordEnd)
+		return err
+	}
 	for {
 		// ReadString also handles SQL statements longer than Scanner's limit.
 		line, err := reader.ReadString('\n')
 		if len(line) > 0 {
-			if pendingHeader != "" {
-				if strings.TrimSpace(line) == "" && err == nil {
-					continue
+			content := strings.TrimRight(line, "\r\n")
+			end := line[len(content):]
+			continuation := strings.HasPrefix(line, "\t") || strings.HasPrefix(line, " ")
+			switch {
+			case inRecord && (continuation || strings.TrimSpace(content) == ""):
+				// PostgreSQL indents continuation lines. SLP copies newlines into its
+				// TSV output verbatim, so fold multiline statements into one line.
+				if part := strings.TrimSpace(content); part != "" {
+					record = strings.TrimRight(record, " \t") + " " + part
 				}
-				if strings.HasPrefix(line, "\t") || strings.HasPrefix(line, " ") {
-					line = pendingHeader + strings.TrimLeft(line, " \t")
-				} else if _, writeErr := io.WriteString(dest, pendingHeader+"\n"); writeErr != nil {
+				recordEnd = end
+			case continuation:
+				// Orphaned continuation of a record that started before the capture.
+				if _, writeErr := io.WriteString(dest, line); writeErr != nil {
 					return writeErr
 				}
-				pendingHeader = ""
-			}
-			// PostgreSQL indents continuation lines. Do not rewrite SQL literals
-			// that happen to contain text resembling an execute log header.
-			if !strings.HasPrefix(line, "\t") && !strings.HasPrefix(line, " ") {
-				line = executeRecord.ReplaceAllString(line, "${1}statement: ")
-				if emptyStatementRecord.MatchString(line) {
-					pendingHeader = strings.TrimRight(line, " \t\r\n") + " "
-					line = ""
+			default:
+				if writeErr := flush(); writeErr != nil {
+					return writeErr
 				}
-			}
-			if _, writeErr := io.WriteString(dest, line); writeErr != nil {
-				return writeErr
+				// Do not rewrite SQL literals that happen to contain text resembling
+				// an execute log header; only record headers reach this point.
+				record, recordEnd, inRecord = executeRecord.ReplaceAllString(content, "${1}statement: "), end, true
 			}
 		}
 		if err == io.EOF {
-			if pendingHeader != "" {
-				_, writeErr := io.WriteString(dest, pendingHeader+"\n")
-				return writeErr
-			}
-			return nil
+			return flush()
 		}
 		if err != nil {
 			return err
