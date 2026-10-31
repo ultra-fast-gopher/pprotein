@@ -16,10 +16,10 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/labstack/echo/v4"
 	"github.com/ultra-fast-gopher/pprotein/internal/collect"
 	"github.com/ultra-fast-gopher/pprotein/internal/git"
 	"github.com/ultra-fast-gopher/pprotein/internal/storage"
-	"github.com/labstack/echo/v4"
 )
 
 const (
@@ -129,7 +129,7 @@ func (cl *Collector) startRun(c echo.Context) error {
 	}
 	prepared := make([]CollectTarget, len(targets))
 	for i, target := range targets {
-		if target.Type != "pprof" && target.Type != "httplog" && target.Type != "slowlog" {
+		if target.Type != "pprof" && target.Type != "httplog" && target.Type != "slowlog" && target.Type != "pgslowlog" {
 			return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("unsupported session target type: %s", target.Type))
 		}
 		if _, err := controlURL(*target, "start"); err != nil {

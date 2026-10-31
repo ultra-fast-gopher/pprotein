@@ -39,11 +39,16 @@ export interface Config extends Omit<SnapshotTarget, "GroupId"> {
 }
 
 const state = {
-  endpoints: ["memo", "pprof", "httplog", "slowlog"],
+  endpoints: ["memo", "pprof", "httplog", "slowlog", "pgslowlog"],
   groups: [] as string[],
   entries: {} as { [key: string]: Entry },
 
-  settingKeys: ["group/targets", "httplog/config", "slowlog/config"],
+  settingKeys: [
+    "group/targets",
+    "httplog/config",
+    "slowlog/config",
+    "pgslowlog/config",
+  ],
   settings: {} as { [key: string]: SettingRecord },
 };
 
@@ -64,7 +69,7 @@ const syncSettingsPlugin = (store: Store<typeof state>) => {
     const resp = await fetch(`/api/${key}`);
     if (!resp.ok) {
       return alert(
-        `http error: status=${resp.status}, message=${await resp.text()}`
+        `http error: status=${resp.status}, message=${await resp.text()}`,
       );
     }
 
@@ -101,7 +106,7 @@ export default createStore({
         const resp = await fetch(`/api/${endpoint}`);
         if (!resp.ok) {
           return alert(
-            `http error: status=${resp.status}, message=${await resp.text()}`
+            `http error: status=${resp.status}, message=${await resp.text()}`,
           );
         }
 
@@ -121,7 +126,7 @@ export default createStore({
         });
         if (!resp.ok) {
           return alert(
-            `http error: status=${resp.status}, message=${await resp.text()}`
+            `http error: status=${resp.status}, message=${await resp.text()}`,
           );
         }
 
@@ -137,7 +142,7 @@ export default createStore({
         .filter((e) => e.Snapshot.Type == snapshotType)
         .sort(
           (a, b) =>
-            b.Snapshot.Datetime.getTime() - a.Snapshot.Datetime.getTime()
+            b.Snapshot.Datetime.getTime() - a.Snapshot.Datetime.getTime(),
         );
     },
     entriesByGroup: (state) => (groupId: string) => {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net"
 	"os"
 
 	"github.com/ultra-fast-gopher/pprotein/integration/standalone"
@@ -11,5 +12,5 @@ func main() {
 	if port == "" {
 		port = "19000"
 	}
-	standalone.Integrate(":" + port)
+	standalone.Integrate(net.JoinHostPort(os.Getenv("HOST"), port))
 }

@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	TypePprof   = "pprof"
-	TypeHTTPLog = "httplog"
-	TypeSlowLog = "slowlog"
+	TypePprof     = "pprof"
+	TypeHTTPLog   = "httplog"
+	TypeSlowLog   = "slowlog"
+	TypePGSlowLog = "pgslowlog"
 )
 
 type (
@@ -44,12 +45,13 @@ type (
 	}
 )
 
-func NewHandler(httplogPath, slowlogPath string) *Handler {
+func NewHandler(httplogPath, slowlogPath, pgslowlogPath string) *Handler {
 	return &Handler{
 		active: make(map[string]*activeCapture),
 		logPath: map[string]string{
-			TypeHTTPLog: httplogPath,
-			TypeSlowLog: slowlogPath,
+			TypeHTTPLog:   httplogPath,
+			TypeSlowLog:   slowlogPath,
+			TypePGSlowLog: pgslowlogPath,
 		},
 	}
 }
@@ -91,7 +93,7 @@ func (h *Handler) Start(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("could not start CPU profile: %v", err), http.StatusConflict)
 			return
 		}
-	case TypeHTTPLog, TypeSlowLog:
+	case TypeHTTPLog, TypeSlowLog, TypePGSlowLog:
 		path := h.logPath[req.Type]
 		file, err := os.Open(path)
 		if err != nil {

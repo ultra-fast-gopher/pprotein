@@ -17,6 +17,7 @@ import (
 var (
 	httplogPath       = getEnvOrDefault("PPROTEIN_HTTPLOG", "/var/log/nginx/access.log")
 	slowlogPath       = getEnvOrDefault("PPROTEIN_SLOWLOG", "/var/log/mysql/mysql-slow.log")
+	pgslowlogPath     = getEnvOrDefault("PPROTEIN_PGSLOWLOG", "/var/log/postgresql/postgresql.log")
 	gitRepositoryPath = getEnvOrDefault("PPROTEIN_GIT_REPOSITORY", ".")
 )
 
@@ -28,12 +29,13 @@ func NewDebugHandler() http.Handler {
 
 func RegisterDebugHandlers(r *mux.Router) {
 	r.Use(gitRepositoryMiddleware)
-	captureHandler := capture.NewHandler(httplogPath, slowlogPath)
+	captureHandler := capture.NewHandler(httplogPath, slowlogPath, pgslowlogPath)
 	r.HandleFunc("/debug/capture/start", captureHandler.Start).Methods(http.MethodPost)
 	r.HandleFunc("/debug/capture/stop", captureHandler.Stop).Methods(http.MethodPost)
 
 	r.Handle("/debug/log/httplog", tail.NewTailHandler(httplogPath))
 	r.Handle("/debug/log/slowlog", tail.NewTailHandler(slowlogPath))
+	r.Handle("/debug/log/pgslowlog", tail.NewTailHandler(pgslowlogPath))
 
 	r.Handle("/debug/fgprof", fgprof.Handler())
 

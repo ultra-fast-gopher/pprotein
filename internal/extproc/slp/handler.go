@@ -4,12 +4,12 @@ import (
 	_ "embed"
 	"fmt"
 
+	"github.com/labstack/echo/v4"
 	"github.com/ultra-fast-gopher/pprotein/internal/collect"
 	"github.com/ultra-fast-gopher/pprotein/internal/extproc"
 	"github.com/ultra-fast-gopher/pprotein/internal/git"
 	"github.com/ultra-fast-gopher/pprotein/internal/persistent"
 	"github.com/ultra-fast-gopher/pprotein/internal/storage"
-	"github.com/labstack/echo/v4"
 	"gopkg.in/yaml.v3"
 )
 
@@ -19,21 +19,34 @@ type (
 	}
 
 	handler struct {
-		opts   *collect.Options
-		config *persistent.Handler
-		adder  snapshotAdder
+		opts    *collect.Options
+		config  *persistent.Handler
+		adder   snapshotAdder
+		command string
 	}
 )
 
 //go:embed slp.yml
 var defaultConfig []byte
 
+//go:embed pgslp.yml
+var defaultPostgreSQLConfig []byte
+
 func NewHandler(opts *collect.Options, store storage.Storage) (*handler, error) {
+	return newHandler(opts, store, "my", "slp.yml", defaultConfig)
+}
+
+func NewPostgreSQLHandler(opts *collect.Options, store storage.Storage) (*handler, error) {
+	return newHandler(opts, store, "pg", "pgslp.yml", defaultPostgreSQLConfig)
+}
+
+func newHandler(opts *collect.Options, store storage.Storage, command, configName string, defaults []byte) (*handler, error) {
 	h := &handler{
-		opts: opts,
+		opts:    opts,
+		command: command,
 	}
 
-	config, err := persistent.New(store, "slp.yml", defaultConfig, h.sanitize)
+	config, err := persistent.New(store, configName, defaults, h.sanitize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create targets: %w", err)
 	}
@@ -45,7 +58,7 @@ func NewHandler(opts *collect.Options, store storage.Storage) (*handler, error) 
 func (h *handler) Register(g *echo.Group) error {
 	h.config.RegisterHandlers(g.Group("/config"))
 
-	api := extproc.NewHandler(&processor{confPath: h.config.GetPath()}, h.opts)
+	api := extproc.NewHandler(&processor{confPath: h.config.GetPath(), command: h.command}, h.opts)
 	if err := api.Register(g); err != nil {
 		return fmt.Errorf("failed to register extproc handlers: %w", err)
 	}

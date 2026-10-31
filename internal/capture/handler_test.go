@@ -17,7 +17,7 @@ func TestLogSessionCapturesOnlyAppendedBytes(t *testing.T) {
 	if err := os.WriteFile(logPath, []byte("before\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	handler := NewHandler(logPath, "")
+	handler := NewHandler(logPath, "", "")
 
 	start := captureRequest(handler.Start, "session-1", TypeHTTPLog, "")
 	if start.Code != http.StatusAccepted {
@@ -44,7 +44,7 @@ func TestLogSessionCapturesOnlyAppendedBytes(t *testing.T) {
 }
 
 func TestPprofSessionReturnsGzipProfile(t *testing.T) {
-	handler := NewHandler("", "")
+	handler := NewHandler("", "", "")
 	start := captureRequest(handler.Start, "profile-1", TypePprof, "")
 	if start.Code != http.StatusAccepted {
 		t.Fatalf("start status = %d, want %d: %s", start.Code, http.StatusAccepted, start.Body.String())
@@ -77,13 +77,41 @@ func TestPprofSessionReturnsGzipProfile(t *testing.T) {
 	}
 }
 
+func TestPostgreSQLCaptureUsesSeparateLog(t *testing.T) {
+	mysqlPath := t.TempDir() + "/mysql.log"
+	pgPath := t.TempDir() + "/postgresql.log"
+	for _, path := range []string{mysqlPath, pgPath} {
+		if err := os.WriteFile(path, []byte("before\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	handler := NewHandler("", mysqlPath, pgPath)
+	for _, typ := range []string{TypeSlowLog, TypePGSlowLog} {
+		if got := captureRequest(handler.Start, "same-session", typ, ""); got.Code != http.StatusAccepted {
+			t.Fatalf("start %s: %d %s", typ, got.Code, got.Body.String())
+		}
+	}
+	if err := os.WriteFile(mysqlPath, []byte("before\nmysql only\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(pgPath, []byte("before\npostgresql only\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for typ, want := range map[string]string{TypeSlowLog: "mysql only\n", TypePGSlowLog: "postgresql only\n"} {
+		got := captureRequest(handler.Stop, "same-session", typ, "")
+		if got.Code != http.StatusOK || got.Body.String() != want || got.Header().Get("X-Capture-Type") != typ {
+			t.Fatalf("stop %s: code=%d, type=%q, body=%q", typ, got.Code, got.Header().Get("X-Capture-Type"), got.Body.String())
+		}
+	}
+}
+
 func TestControlTokenRequiredWhenConfigured(t *testing.T) {
 	t.Setenv("PPROTEIN_CONTROL_TOKEN", "test-token")
 	logPath := t.TempDir() + "/slow.log"
 	if err := os.WriteFile(logPath, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	handler := NewHandler("", logPath)
+	handler := NewHandler("", logPath, "")
 
 	unauthorized := captureRequest(handler.Start, "session-2", TypeSlowLog, "")
 	if unauthorized.Code != http.StatusUnauthorized {

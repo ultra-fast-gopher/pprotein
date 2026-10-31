@@ -8,7 +8,7 @@ This document describes the HTTP endpoints implemented by this checkout of pprot
 - All `/api/*` responses set `Cache-Control: no-store`.
 - The source has no authentication middleware on these routes. Restrict network access or add authentication at a trusted reverse proxy.
 
-The main server serves the web UI at `/` and the JSON, streaming, and profile UI endpoints below. It also mounts the debug routes described later. The agent binary exposes the same debug routes on its own port.
+The main server serves the web UI at `/` and the JSON, streaming, and profile UI endpoints below. It also mounts the debug routes described later. The agent binary exposes the same debug routes on its own port. Its optional `HOST` environment variable selects the listening interface (empty by default).
 
 ## Main API summary
 
@@ -48,6 +48,8 @@ The main server serves the web UI at `/` and the JSON, streaming, and profile UI
 | `GET` | `/api/memo/{id}` | Get one memo as JSON |
 
 The API is mounted under the main server origin. For example, if pprotein listens on port 9000, the base URL is `http://pprotein-host:9000`.
+
+The PostgreSQL API is `/api/pgslowlog`, with the same list, collect, report, raw data, latest data, and configuration routes as `/api/slowlog`. It has a separate storage bucket and `data/pgslp.yml` configuration. See [PostgreSQL setup](POSTGRESQL.md) for log settings, prefix matching, and target examples.
 
 ## Snapshot data model
 
@@ -108,7 +110,7 @@ The `GroupId` links entries created by a single group collection. Direct collect
 
 Per-target statuses are `starting`, `running`, `completed`, and `failed`. A successful stop imports the captured bytes through the existing pprof, ALP, or SLP processor. The resulting snapshot has `GroupId` equal to the run ID and appears in the existing group view. If pprotein restarts during an active run, the persisted run is marked `interrupted`; `POST /api/runs/{id}/stop` can attempt to recover still-active target captures.
 
-Only `pprof`, `httplog`, and `slowlog` targets participate in sessions. Existing fixed-duration `GET /api/group/collect` behavior remains available. Session start ignores each target's configured `Duration`; the saved field remains required for fixed-duration collection.
+Only `pprof`, `httplog`, `slowlog` (MySQL), and `pgslowlog` (PostgreSQL) targets participate in sessions. Existing fixed-duration `GET /api/group/collect` behavior remains available. Session start ignores each target's configured `Duration`; the saved field remains required for fixed-duration collection.
 
 ### Target-side session endpoints
 
@@ -116,7 +118,7 @@ The Go application or pprotein-agent that owns each resource must expose:
 
 | Method | Path | Request | Response |
 | --- | --- | --- | --- |
-| `POST` | `/debug/capture/start` | `{"SessionID":"run-id","Type":"pprof"}` (or `httplog` / `slowlog`) | `202 Accepted`; repeated start for the same ID/type returns `200 OK` |
+| `POST` | `/debug/capture/start` | `{"SessionID":"run-id","Type":"pprof"}` (or `httplog` / `slowlog` / `pgslowlog`) | `202 Accepted`; repeated start for the same ID/type returns `200 OK` |
 | `POST` | `/debug/capture/stop` | Same session ID and type | `200 OK` with captured bytes as `application/octet-stream`; `204` if no bytes were captured |
 
 If `ControlURL` is empty, pprotein derives the control base URL from the target URL by replacing its `/debug/...` path with `/debug/capture`. To use a different host/path, add `ControlURL` to a target; it is the base URL without the final `/start` or `/stop`, for example:
@@ -238,7 +240,7 @@ The configuration handlers share these semantics:
 - `POST` reads the entire request body, validates/parses it, persists the normalized content, and returns `200 OK` with no body.
 - Invalid JSON or YAML returns `400 Bad Request`; storage failures return `500`.
 
-`/api/httplog/config` stores `data/alp.yml`; `/api/slowlog/config` stores `data/slp.yml`. Their YAML structures are interpreted by ALP and SLP respectively. The current embedded defaults are in `internal/extproc/alp/alp.yml` and `internal/extproc/slp/slp.yml`. The handlers check YAML syntax but do not validate all ALP/SLP option semantics before saving.
+`/api/httplog/config` stores `data/alp.yml`; `/api/slowlog/config` stores `data/slp.yml`; `/api/pgslowlog/config` stores `data/pgslp.yml`. Their YAML structures are interpreted by ALP and SLP respectively. The current embedded defaults are in `internal/extproc/alp/alp.yml` and `internal/extproc/slp/slp.yml`. The handlers check YAML syntax but do not validate all ALP/SLP option semantics before saving.
 
 The group target API stores `data/targets.json` and validates the list structure and required fields before saving.
 
@@ -276,7 +278,8 @@ Both the main pprotein server and `pprotein-agent` mount the shared debug handle
 | Method | Path | Behavior |
 | --- | --- | --- |
 | `GET` | `/debug/log/httplog?seconds=N` | Wait for `N` seconds and return bytes appended to the configured HTTP log during that interval |
-| `GET` | `/debug/log/slowlog?seconds=N` | Wait for `N` seconds and return bytes appended to the configured slow log during that interval |
+| `GET` | `/debug/log/slowlog?seconds=N` | Wait for `N` seconds and return bytes appended to the MySQL log during that interval |
+| `GET` | `/debug/log/pgslowlog?seconds=N` | Wait for `N` seconds and return bytes appended to the PostgreSQL log during that interval |
 | `GET` | `/debug/fgprof` | Return an fgprof profile |
 | `POST` | `/debug/capture/start` | Start CPU profiling or record a log file offset for a session |
 | `POST` | `/debug/capture/stop` | Stop the session and return pprof/log bytes |
@@ -286,7 +289,7 @@ Both the main pprotein server and `pprotein-agent` mount the shared debug handle
 | `GET` | `/debug/pprof/cmdline` | Return process command-line arguments |
 | `GET` | `/debug/pprof/symbol` | Go pprof symbol endpoint |
 
-The log handlers default `seconds` to 30 when it is absent or not an integer. They seek to the current end of the file, wait, then return newly appended bytes; they do not return the whole log. If the request advertises `Accept-Encoding: gzip`, the response is gzip-compressed. Log paths are controlled by `PPROTEIN_HTTPLOG` (default `/var/log/nginx/access.log`) and `PPROTEIN_SLOWLOG` (default `/var/log/mysql/mysql-slow.log`). `PPROTEIN_GIT_REPOSITORY` selects the Git repository used for the `X-Git-Repository` response header (default `.`).
+The log handlers default `seconds` to 30 when it is absent or not an integer. They seek to the current end of the file, wait, then return newly appended bytes; they do not return the whole log. If the request advertises `Accept-Encoding: gzip`, the response is gzip-compressed. Log paths are controlled by `PPROTEIN_HTTPLOG` (default `/var/log/nginx/access.log`) , `PPROTEIN_SLOWLOG` (default `/var/log/mysql/mysql-slow.log`), and `PPROTEIN_PGSLOWLOG` (default `/var/log/postgresql/postgresql.log`). `PPROTEIN_GIT_REPOSITORY` selects the Git repository used for the `X-Git-Repository` response header (default `.`).
 
 `pprotein-agent` is useful when logs reside on another machine: run it on that machine, make its port reachable from the pprotein server, and use its `/debug/log/...` URL as a target. For pprof, the target application must expose `/debug/pprof/...` or `/debug/fgprof` itself; the agent does not proxy another process's pprof endpoint.
 
