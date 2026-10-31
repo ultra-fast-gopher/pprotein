@@ -1,6 +1,6 @@
 bundle_values: true
 bundle_where_in: true
-filters: Query matches "(?i)^\\s*(SELECT|INSERT|UPDATE|DELETE|WITH)\\b"
+filters: Query matches "(?i)^\\s*(SELECT|INSERT|UPDATE|DELETE|WITH|LOCK|BEGIN|COMMIT|ROLLBACK)\\b"
 log_line_prefix: '%m [%p] '
 sort: sum-query-time
 reverse: true
